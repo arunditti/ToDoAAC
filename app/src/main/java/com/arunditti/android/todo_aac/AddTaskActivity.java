@@ -104,12 +104,18 @@ public class AddTaskActivity extends AppCompatActivity {
         // Create a date variable and assign to it the current Date
         Date date = new Date();
 
-        // Create taskEntry variable using the variables defined above
-        TaskEntry taskEntry = new TaskEntry(description, priority, date);
-        // Use the taskDao in the AppDatabase variable to insert the taskEntry
-        mDb.taskDao().insertTask(taskEntry);
-        // call finish() to come back to MainActivity
-        finish();
+        //Make taskEntry final so it is visible inside the run method
+        final TaskEntry taskEntry = new TaskEntry(description, priority, date);
+        //  Get the diskIO Executor from the instance of AppExecutors and
+        // call the diskIO execute method with a new Runnable and implement its run method
+        AppExecutors.getInstance().diskIO().execute(new Runnable() {
+            @Override
+            public void run() {
+                // COMPLETED (3) Move the remaining logic inside the run method
+                mDb.taskDao().insertTask(taskEntry);
+                finish();
+            }
+        });
     }
 
     /**
