@@ -25,9 +25,7 @@ public class MainActivity extends AppCompatActivity implements TaskAdapter.ItemC
     private RecyclerView mRecyclerView;
     private TaskAdapter mAdapter;
 
-    // Create AppDatabase member variable for the Database
     private AppDatabase mDb;
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -61,8 +59,22 @@ public class MainActivity extends AppCompatActivity implements TaskAdapter.ItemC
 
             // Called when a user swipes left or right on a ViewHolder
             @Override
-            public void onSwiped(RecyclerView.ViewHolder viewHolder, int swipeDir) {
+            public void onSwiped(final RecyclerView.ViewHolder viewHolder, int swipeDir) {
                 // Here is where you'll implement swipe to delete
+                // Get the diskIO Executor from the instance of AppExecutors and
+                // call the diskIO execute method with a new Runnable and implement its run method
+                AppExecutors.getInstance().diskIO().execute(new Runnable() {
+                    @Override
+                    public void run() {
+                        // get the position from the viewHolder parameter
+                        int position = viewHolder.getAdapterPosition();
+                        List<TaskEntry> tasks = mAdapter.getTasks();
+                        // Call deleteTask in the taskDao with the task at that position
+                        mDb.taskDao().deleteTask(tasks.get(position));
+                        // Call retrieveTasks method to refresh the UI
+                        retrieveTasks();
+                    }
+                });
             }
         }).attachToRecyclerView(mRecyclerView);
 
@@ -82,7 +94,6 @@ public class MainActivity extends AppCompatActivity implements TaskAdapter.ItemC
             }
         });
 
-        //Initialize member variable for the data base
         mDb = AppDatabase.getInstance(getApplicationContext());
     }
 
@@ -94,15 +105,15 @@ public class MainActivity extends AppCompatActivity implements TaskAdapter.ItemC
     @Override
     protected void onResume() {
         super.onResume();
-        // Get the diskIO Executor from the instance of AppExecutors and
-        // call the diskIO execute method with a new Runnable and implement its run method
+        // Extract the logic to a retrieveTasks method so it can be reused
+        retrieveTasks();
+    }
+
+    private void retrieveTasks() {
         AppExecutors.getInstance().diskIO().execute(new Runnable() {
             @Override
             public void run() {
-                //  Move the logic into the run method and
-                // Extract the list of tasks to a final variable
                 final List<TaskEntry> tasks = mDb.taskDao().loadAllTasks();
-                // Wrap the setTask call in a call to runOnUiThread
                 // We will be able to simplify this once we learn more
                 // about Android Architecture Components
                 runOnUiThread(new Runnable() {
