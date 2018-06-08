@@ -8,6 +8,7 @@ import android.support.v7.widget.DividerItemDecoration;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.helper.ItemTouchHelper;
+import android.util.Log;
 import android.view.View;
 
 import com.arunditti.android.todo_aac.database.AppDatabase;
@@ -18,6 +19,8 @@ import java.util.List;
 import static android.support.v7.widget.DividerItemDecoration.VERTICAL;
 
 public class MainActivity extends AppCompatActivity implements TaskAdapter.ItemClickListener {
+
+    private static final String LOG_TAG = MainActivity.class.getSimpleName();
 
     // Constant for logging
     private static final String TAG = MainActivity.class.getSimpleName();
@@ -113,6 +116,7 @@ public class MainActivity extends AppCompatActivity implements TaskAdapter.ItemC
         AppExecutors.getInstance().diskIO().execute(new Runnable() {
             @Override
             public void run() {
+                Log.d(LOG_TAG, "Activity retrieveing the task from the database");
                 final List<TaskEntry> tasks = mDb.taskDao().loadAllTasks();
                 // We will be able to simplify this once we learn more
                 // about Android Architecture Components
@@ -128,6 +132,9 @@ public class MainActivity extends AppCompatActivity implements TaskAdapter.ItemC
 
     @Override
     public void onItemClickListener(int itemId) {
-        // Launch AddTaskActivity adding the itemId as an extra in the intent
+        // Launch AddTaskActivity with itemId as extra in the intent for the key AddTaskActivity.EXTRA_TASK_ID
+        Intent intent = new Intent(MainActivity.this, AddTaskActivity.class);
+        intent.putExtra(AddTaskActivity.EXTRA_TASK_ID, itemId);
+        startActivity(intent);
     }
 }

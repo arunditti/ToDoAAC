@@ -57,6 +57,29 @@ public class AddTaskActivity extends AppCompatActivity {
             mButton.setText(R.string.update_button);
             if (mTaskId == DEFAULT_TASK_ID) {
                 // populate the UI
+                //  Assign the value of EXTRA_TASK_ID in the intent to mTaskId
+                // Use DEFAULT_TASK_ID as the default
+                mTaskId = intent.getIntExtra(EXTRA_TASK_ID, DEFAULT_TASK_ID);
+                // Get the diskIO Executor from the instance of AppExecutors and
+                // call the diskIO execute method with a new Runnable and implement its run method
+                AppExecutors.getInstance().diskIO().execute(new Runnable() {
+                    @Override
+                    public void run() {
+                        // Use the loadTaskById method to retrieve the task with id mTaskId and
+                        // assign its value to a final TaskEntry variable
+                        final TaskEntry task = mDb.taskDao().loadTaskById(mTaskId);
+                        // Call the populateUI method with the retrieve tasks
+                        // Remember to wrap it in a call to runOnUiThread
+                        // We will be able to simplify this once we learn more
+                        // about Android Architecture Components
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                populateUI(task);
+                            }
+                        });
+                    }
+                });
             }
         }
     }
@@ -89,7 +112,14 @@ public class AddTaskActivity extends AppCompatActivity {
      * @param task the taskEntry to populate the UI
      */
     private void populateUI(TaskEntry task) {
+        // return if the task is null
+        if (task == null) {
+            return;
+        }
 
+        // use the variable task to populate the UI
+        mEditText.setText(task.getDescription());
+        setPriorityInViews(task.getPriority());
     }
 
     /**
@@ -105,14 +135,23 @@ public class AddTaskActivity extends AppCompatActivity {
         Date date = new Date();
 
         //Make taskEntry final so it is visible inside the run method
-        final TaskEntry taskEntry = new TaskEntry(description, priority, date);
+        final TaskEntry task = new TaskEntry(description, priority, date);
         //  Get the diskIO Executor from the instance of AppExecutors and
         // call the diskIO execute method with a new Runnable and implement its run method
         AppExecutors.getInstance().diskIO().execute(new Runnable() {
             @Override
             public void run() {
-                // COMPLETED (3) Move the remaining logic inside the run method
-                mDb.taskDao().insertTask(taskEntry);
+                // COMPLETED (9) insert the task only if mTaskId matches DEFAULT_TASK_ID
+                // Otherwise update it
+                // call finish in any case
+                if (mTaskId == DEFAULT_TASK_ID) {
+                    // insert new task
+                    mDb.taskDao().insertTask(task);
+                } else {
+                    //update task
+                    task.setId(mTaskId);
+                    mDb.taskDao().updateTask(task);
+                }
                 finish();
             }
         });
