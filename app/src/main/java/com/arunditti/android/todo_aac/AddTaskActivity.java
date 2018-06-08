@@ -1,8 +1,12 @@
 package com.arunditti.android.todo_aac;
 
+import android.arch.lifecycle.LiveData;
+import android.arch.lifecycle.Observer;
 import android.content.Intent;
+import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -15,6 +19,8 @@ import java.util.Date;
 
 
 public class AddTaskActivity extends AppCompatActivity {
+
+    private static final String LOG_TAG = AddTaskActivity.class.getSimpleName();
 
         // Extra for the task ID to be received in the intent
         public static final String EXTRA_TASK_ID = "extraTaskId";
@@ -62,22 +68,15 @@ public class AddTaskActivity extends AppCompatActivity {
                 mTaskId = intent.getIntExtra(EXTRA_TASK_ID, DEFAULT_TASK_ID);
                 // Get the diskIO Executor from the instance of AppExecutors and
                 // call the diskIO execute method with a new Runnable and implement its run method
-                AppExecutors.getInstance().diskIO().execute(new Runnable() {
+                // Use the loadTaskById method to retrieve the task with id mTaskId and
+                // assign its value to a final TaskEntry variable
+                final LiveData<TaskEntry> task = mDb.taskDao().loadTaskById(mTaskId);
+
+                task.observe(this, new Observer<TaskEntry>() {
                     @Override
-                    public void run() {
-                        // Use the loadTaskById method to retrieve the task with id mTaskId and
-                        // assign its value to a final TaskEntry variable
-                        final TaskEntry task = mDb.taskDao().loadTaskById(mTaskId);
-                        // Call the populateUI method with the retrieve tasks
-                        // Remember to wrap it in a call to runOnUiThread
-                        // We will be able to simplify this once we learn more
-                        // about Android Architecture Components
-                        runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                populateUI(task);
-                            }
-                        });
+                    public void onChanged(@Nullable TaskEntry taskEntry) {
+                        Log.d(LOG_TAG, "Receiving database updates from LiveData");
+                        populateUI(taskEntry);
                     }
                 });
             }
@@ -141,7 +140,7 @@ public class AddTaskActivity extends AppCompatActivity {
         AppExecutors.getInstance().diskIO().execute(new Runnable() {
             @Override
             public void run() {
-                // COMPLETED (9) insert the task only if mTaskId matches DEFAULT_TASK_ID
+                // insert the task only if mTaskId matches DEFAULT_TASK_ID
                 // Otherwise update it
                 // call finish in any case
                 if (mTaskId == DEFAULT_TASK_ID) {

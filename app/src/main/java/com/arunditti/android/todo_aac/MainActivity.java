@@ -1,6 +1,9 @@
 package com.arunditti.android.todo_aac;
 
+import android.arch.lifecycle.LiveData;
+import android.arch.lifecycle.Observer;
 import android.content.Intent;
+import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -74,8 +77,6 @@ public class MainActivity extends AppCompatActivity implements TaskAdapter.ItemC
                         List<TaskEntry> tasks = mAdapter.getTasks();
                         // Call deleteTask in the taskDao with the task at that position
                         mDb.taskDao().deleteTask(tasks.get(position));
-                        // Call retrieveTasks method to refresh the UI
-                        retrieveTasks();
                     }
                 });
             }
@@ -98,6 +99,8 @@ public class MainActivity extends AppCompatActivity implements TaskAdapter.ItemC
         });
 
         mDb = AppDatabase.getInstance(getApplicationContext());
+        //Call retrieveTAsks
+        retrieveTasks();
     }
 
     /**
@@ -108,27 +111,20 @@ public class MainActivity extends AppCompatActivity implements TaskAdapter.ItemC
     @Override
     protected void onResume() {
         super.onResume();
-        // Extract the logic to a retrieveTasks method so it can be reused
-        retrieveTasks();
     }
 
     private void retrieveTasks() {
-        AppExecutors.getInstance().diskIO().execute(new Runnable() {
-            @Override
-            public void run() {
+
                 Log.d(LOG_TAG, "Activity retrieveing the task from the database");
-                final List<TaskEntry> tasks = mDb.taskDao().loadAllTasks();
-                // We will be able to simplify this once we learn more
-                // about Android Architecture Components
-                runOnUiThread(new Runnable() {
+                final LiveData<List<TaskEntry>> tasks = mDb.taskDao().loadAllTasks();
+                tasks.observe(this, new Observer<List<TaskEntry>>() {
                     @Override
-                    public void run() {
-                        mAdapter.setTasks(tasks);
+                    public void onChanged(@Nullable List<TaskEntry> taskEntries) {
+                        Log.d(LOG_TAG, "Receiving database udate from LiveData");
+                        mAdapter.setTasks(taskEntries);
                     }
                 });
-            }
-        });
-    }
+        }
 
     @Override
     public void onItemClickListener(int itemId) {
