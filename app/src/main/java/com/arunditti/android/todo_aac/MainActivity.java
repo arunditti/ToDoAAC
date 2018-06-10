@@ -2,6 +2,7 @@ package com.arunditti.android.todo_aac;
 
 import android.arch.lifecycle.LiveData;
 import android.arch.lifecycle.Observer;
+import android.arch.lifecycle.ViewModelProviders;
 import android.content.Intent;
 import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
@@ -100,7 +101,7 @@ public class MainActivity extends AppCompatActivity implements TaskAdapter.ItemC
 
         mDb = AppDatabase.getInstance(getApplicationContext());
         //Call retrieveTAsks
-        retrieveTasks();
+        setupViewModel();
     }
 
     /**
@@ -113,18 +114,18 @@ public class MainActivity extends AppCompatActivity implements TaskAdapter.ItemC
         super.onResume();
     }
 
-    private void retrieveTasks() {
+    private void setupViewModel() {
+        MainViewModel viewModel = ViewModelProviders.of(this).get(MainViewModel.class);
+        // Observe the LiveData object in the ViewModel
+        viewModel.getTasks().observe(this, new Observer<List<TaskEntry>>() {
+            @Override
+            public void onChanged(@Nullable List<TaskEntry> taskEntries) {
+                Log.d(TAG, "Updating list of tasks from LiveData in ViewModel");
+                mAdapter.setTasks(taskEntries);
+            }
+        });
+    }
 
-                Log.d(LOG_TAG, "Activity retrieveing the task from the database");
-                final LiveData<List<TaskEntry>> tasks = mDb.taskDao().loadAllTasks();
-                tasks.observe(this, new Observer<List<TaskEntry>>() {
-                    @Override
-                    public void onChanged(@Nullable List<TaskEntry> taskEntries) {
-                        Log.d(LOG_TAG, "Receiving database udate from LiveData");
-                        mAdapter.setTasks(taskEntries);
-                    }
-                });
-        }
 
     @Override
     public void onItemClickListener(int itemId) {
