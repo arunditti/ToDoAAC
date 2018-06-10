@@ -2,6 +2,7 @@ package com.arunditti.android.todo_aac;
 
 import android.arch.lifecycle.LiveData;
 import android.arch.lifecycle.Observer;
+import android.arch.lifecycle.ViewModelProviders;
 import android.content.Intent;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
@@ -66,16 +67,19 @@ public class AddTaskActivity extends AppCompatActivity {
                 //  Assign the value of EXTRA_TASK_ID in the intent to mTaskId
                 // Use DEFAULT_TASK_ID as the default
                 mTaskId = intent.getIntExtra(EXTRA_TASK_ID, DEFAULT_TASK_ID);
-                // Get the diskIO Executor from the instance of AppExecutors and
-                // call the diskIO execute method with a new Runnable and implement its run method
-                // Use the loadTaskById method to retrieve the task with id mTaskId and
-                // assign its value to a final TaskEntry variable
-                final LiveData<TaskEntry> task = mDb.taskDao().loadTaskById(mTaskId);
 
-                task.observe(this, new Observer<TaskEntry>() {
+                // Declare a AddTaskViewModelFactory using mDb and mTaskId
+                AddTaskViewModelFactory factory = new AddTaskViewModelFactory(mDb, mTaskId);
+                // Declare a AddTaskViewModel variable and initialize it by calling ViewModelProviders.of
+                // for that use the factory created above AddTaskViewModel
+                final AddTaskViewModel viewModel
+                        = ViewModelProviders.of(this, factory).get(AddTaskViewModel.class);
+
+                // Observe the LiveData object in the ViewModel. Use it also when removing the observer
+                viewModel.getTask().observe(this, new Observer<TaskEntry>() {
                     @Override
                     public void onChanged(@Nullable TaskEntry taskEntry) {
-                        Log.d(LOG_TAG, "Receiving database updates from LiveData");
+                        viewModel.getTask().removeObserver(this);
                         populateUI(taskEntry);
                     }
                 });
